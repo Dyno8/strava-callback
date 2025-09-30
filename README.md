@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Strava Callback Service
 
-## Getting Started
+A minimal Next.js service that completes the Strava OAuth flow for the Strava Telegram Bot. It validates
+Strava's redirect `state`, exchanges authorization codes for tokens, and notifies the bot (and optionally
+the user) once everything is linked.
 
-First, run the development server:
+## Project Layout
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+strava-callback/
+|-- app/
+|   |-- api/strava/callback/route.ts  # API route handling the OAuth redirect
+|   |-- globals.css                   # Minimal global styles
+|   |-- layout.tsx                    # Root layout metadata
+|   `-- page.tsx                      # Informational landing page
+|-- public/
+|-- package.json
+|-- tsconfig.json
+`-- .env.example
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Requirements
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Node.js 18+
+- npm / pnpm / yarn
+- Strava developer application (client ID & secret)
+- Telegram bot token
+- Secret used to sign/verify OAuth `state`
+- Optional: bot endpoint that can accept the exchanged tokens
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+Copy `.env.example` to `.env` and populate the values:
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `STATE_SECRET` | ✅ | HMAC secret used to sign/validate `state` payloads |
+| `STRAVA_CLIENT_ID` | ✅ | Strava OAuth client ID |
+| `STRAVA_CLIENT_SECRET` | ✅ | Strava OAuth client secret |
+| `TELEGRAM_TOKEN` | ⚠ | Needed if the callback should DM the user in Telegram |
+| `BOT_OAUTH_URL` | ⚠ | URL that the callback should POST to so your bot persists tokens |
+| `SUCCESS_REDIRECT_URL` | ⚠ | Where to redirect the browser after success (e.g. `https://t.me/your_bot`) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+(⚠ optional) If you prefer the bot to exchange the code itself, skip the Strava credentials and send
+`code` to an internal bot endpoint instead.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Local Development
 
-## Deploy on Vercel
+```bash
+cd strava-callback
+cp .env.example .env   # fill in secrets
+npm install
+npm run dev            # http://localhost:3000
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To test the redirect locally, point Strava's redirect URI at an HTTPS tunnel of your dev server (e.g. `ngrok http 3000`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploying to Render
+
+1. Push this folder to GitHub.
+2. In Render → New → **Web Service**.
+3. Set Root Directory to `strava-callback` and choose the Free plan.
+4. Build command: `npm install && npm run build`
+5. Start command: `npm run start`
+6. Add environment variables (same as `.env`).
+7. Deploy; note the public URL, e.g. `https://strava-callback.onrender.com`.
+8. Update Strava's redirect URI to `https://strava-callback.onrender.com/api/strava/callback`.
+9. Update your bot's `.env` (`STRAVA_REDIRECT_URI`) with the same URL and redeploy the bot.
+
+## OAuth Flow Summary
+
+1. Bot issues `/login`: generates `state` (HMAC signed with `STATE_SECRET`) containing `telegramId`.
+2. User authorizes Strava → redirected to this service with `code` + `state`.
+3. Callback verifies `state`, exchanges `code` for tokens, notifies bot/user.
+4. Bot persists tokens and confirms inside Telegram.
+
+## Security Notes
+
+- Always validate `state` to prevent cross-account abuse.
+- Keep secrets in Render's environment configuration, not in code.
+- Protect `BOT_OAUTH_URL` behind auth headers or IP allowlists to avoid malicious spam.
+
+## License
+
+MIT (inherits from the main repository).
