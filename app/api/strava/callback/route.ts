@@ -50,21 +50,23 @@ async function exchangeCodeWithStrava(code: string) {
     throw new Error("Strava credentials are not configured");
   }
 
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    code,
+    grant_type: "authorization_code",
+  });
+
   const response = await fetch(STRAVA_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      grant_type: "authorization_code",
-    }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
   });
 
   if (!response.ok) {
-    const errorPayload = await response.json().catch(() => ({}));
+    const errorText = await response.text().catch(() => "");
     const err = new Error("Failed to exchange code with Strava");
-    (err as any).details = errorPayload;
+    (err as any).details = errorText;
     throw err;
   }
 
@@ -133,8 +135,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
-    console.error("Strava callback error", error);
+    const payload =
+      error && typeof error === "object" && "details" in error ? (error as any).details : undefined;
+    console.error("Strava callback error", error, payload);
     const message = error instanceof Error ? error.message : "Unexpected error";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message, details: payload }, { status: 400 });
   }
 }
