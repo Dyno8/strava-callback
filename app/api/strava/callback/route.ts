@@ -75,13 +75,17 @@ async function exchangeCodeWithStrava(code: string) {
 
 async function notifyBot(telegramId: number, tokens: unknown, code: string) {
   const botExchangeUrl = process.env.BOT_OAUTH_URL;
+  const sharedSecret = process.env.BOT_OAUTH_SHARED_SECRET;
   if (!botExchangeUrl) {
     return;
   }
 
   const response = await fetch(botExchangeUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(sharedSecret ? { Authorization: `Bearer ${sharedSecret}` } : {}),
+    },
     body: JSON.stringify({ telegramId, code, tokens }),
   });
   if (!response.ok) {

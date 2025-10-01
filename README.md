@@ -39,6 +39,7 @@ Copy `.env.example` to `.env` and populate the values:
 | `STRAVA_CLIENT_SECRET` | ✅ | Strava OAuth client secret |
 | `TELEGRAM_TOKEN` | ⚠ | Needed if the callback should DM the user in Telegram |
 | `BOT_OAUTH_URL` | ⚠ | URL that the callback should POST to so your bot persists tokens |
+| `BOT_OAUTH_SHARED_SECRET` | ⚠ | Optional bearer token shared with the bot's bridge endpoint |
 | `SUCCESS_REDIRECT_URL` | ⚠ | Where to redirect the browser after success (e.g. `https://t.me/your_bot`) |
 
 (⚠ optional) If you prefer the bot to exchange the code itself, skip the Strava credentials and send
