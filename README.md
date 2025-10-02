@@ -38,12 +38,15 @@ Copy `.env.example` to `.env` and populate the values:
 | `STRAVA_CLIENT_ID` | ✅ | Strava OAuth client ID |
 | `STRAVA_CLIENT_SECRET` | ✅ | Strava OAuth client secret |
 | `TELEGRAM_TOKEN` | ⚠ | Needed if the callback should DM the user in Telegram |
+| `BOT_OAUTH_ENABLED` | ⚠ | `true` to notify the bot automatically, `false` to show the manual code page |
 | `BOT_OAUTH_URL` | ⚠ | URL that the callback should POST to so your bot persists tokens |
 | `BOT_OAUTH_SHARED_SECRET` | ⚠ | Optional bearer token shared with the bot's bridge endpoint |
 | `SUCCESS_REDIRECT_URL` | ⚠ | Where to redirect the browser after success (e.g. `https://t.me/your_bot`) |
+| `MANUAL_REDIRECT_PATH` | ⚠ | Alternative path (default `/manual`) to serve when manual mode is enabled |
 
-(⚠ optional) If you prefer the bot to exchange the code itself, skip the Strava credentials and send
-`code` to an internal bot endpoint instead.
+(⚠ optional) Set `BOT_OAUTH_ENABLED=false` when you want users to copy the authorization code manually and
+send it to the Telegram bot. In that mode the service redirects to `/manual?code=...` so no Render env
+variables need to be removed.
 
 ## Local Development
 

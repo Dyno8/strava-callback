@@ -43,6 +43,11 @@ function verifyState(state: string, secret: string): { telegramId: number } {
   return { telegramId: payload.telegramId };
 }
 
+function isOAuthBridgeEnabled(): boolean {
+  const value = process.env.BOT_OAUTH_ENABLED ?? "true";
+  return !["0", "false", "no", "off"].includes(value.trim().toLowerCase());
+}
+
 async function exchangeCodeWithStrava(code: string) {
   const clientId = process.env.STRAVA_CLIENT_ID;
   const clientSecret = process.env.STRAVA_CLIENT_SECRET;
@@ -74,6 +79,9 @@ async function exchangeCodeWithStrava(code: string) {
 }
 
 async function notifyBot(telegramId: number, tokens: unknown, code: string) {
+  if (!isOAuthBridgeEnabled()) {
+    return;
+  }
   const botExchangeUrl = process.env.BOT_OAUTH_URL;
   const sharedSecret = process.env.BOT_OAUTH_SHARED_SECRET;
   if (!botExchangeUrl) {
@@ -115,6 +123,7 @@ export async function GET(req: NextRequest) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const secret = process.env.STATE_SECRET;
+  const oauthBridgeEnabled = isOAuthBridgeEnabled();
 
   if (!code || !state) {
     return NextResponse.json({ error: "Missing code or state" }, { status: 400 });
@@ -125,6 +134,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const { telegramId } = verifyState(state, secret);
+    if (!oauthBridgeEnabled) {
+      const manualPath = process.env.MANUAL_REDIRECT_PATH || "/manual";
+      const manualUrl = new URL(manualPath, url.origin);
+      manualUrl.searchParams.set("code", code);
+      manualUrl.searchParams.set("telegramId", String(telegramId));
+      return NextResponse.redirect(manualUrl);
+    }
     const tokens = await exchangeCodeWithStrava(code);
     await notifyBot(telegramId, tokens, code);
     await notifyTelegram(
